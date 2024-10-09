@@ -27,7 +27,7 @@ async fn favicon() -> Result<impl Responder> {
 }
 
 /// simple index handler
-#[get("/")]
+#[get("/welcome")]
 async fn welcome(req: HttpRequest, session: Session) -> Result<HttpResponse> {
     println!("{req:?}");
 
