@@ -1,4 +1,5 @@
 use std::{ convert::Infallible, io };
+use actix_cors::Cors;
 use actix_files::{ Files, NamedFile };
 use actix_session::{ storage::CookieSessionStore, Session, SessionMiddleware };
 use actix_web::{
@@ -85,7 +86,20 @@ async fn main() -> io::Result<()> {
     log::info!("starting HTTP server at http://localhost:8080");
 
     HttpServer::new(move || {
+        // CORS
+        let cors = Cors::default()
+            // .allowed_origin("https://www.rust-lang.org")
+            // .allowed_origin_fn(|origin, _req_head| {
+            //     origin.as_bytes().ends_with(b".rust-lang.org")
+            // })
+            .send_wildcard()
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+            .allowed_header(header::CONTENT_TYPE)
+            .max_age(3600);
+
         App::new()
+            .wrap(cors)
             // enable automatic response compression - usually register this first
             .wrap(middleware::Compress::default())
             // cookie session middleware
