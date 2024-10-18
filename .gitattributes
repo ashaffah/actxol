@@ -1,5 +1,5 @@
-* text=auto eol=lf
-*.* linguist-language=Rust
+* linguist-vendored
+*.rs linguist-vendored=false
 
 # Older git versions try to fix line endings on images and fonts, this prevents it.
 *.png binary
