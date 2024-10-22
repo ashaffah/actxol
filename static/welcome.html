@@ -1,13 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>actix - basics</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR CODE GENERATOR</title>
   <link rel="shortcut icon" type="image/x-icon" href="/static/favicon.ico" />
+  <script type="module" src="/static/js/index.js"></script>
+  <link rel="stylesheet" href="/static/css/index.css">
 </head>
 
 <body>
-  <h1>Welcome <img width="30px" height="30px" src="/static/actixLogo.png" /></h1>
+  <h1 class="text-3xl text-center font-bold text-clifford">
+    Welcome to QR SVG Generator!
+    <img width="30px" height="30px" src="/static/actixLogo.png" />
+  </h1>
+  <div class="flex flex-col text-center items-center justify-center">
+    <div class="flex flex-col mt-2 items-center justify-center">
+      <label for="text" class="text-xl font-bold text-clifford">
+        Enter the text you want to convert to QR code:
+      </label>
+      <textarea type="text" id="text" class="border-2 border-clifford rounded-md p-2 m-2" style="width: 300px;
+  height: 150px;"></textarea>
+      <button id="generate" class="bg-clifford bg-cyan-400 p-2 rounded-md m-2 hover:bg-cyan-500 hover:text-white">
+        Generate QR Code
+      </button>
+    </div>
+    <div id="qr" class="m-2"></div>
+  </div>
 </body>
 
 </html>
