@@ -1,3 +1,4 @@
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
 mod model;
 
 use model::User;
@@ -110,9 +111,9 @@ async fn streaming_response(path: web::Path<String>) -> HttpResponse {
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/api/add_user")]
-async fn add_user(cfg: web::Data<AppStates>, form: web::Form<User>) -> HttpResponse {
-    let collection = cfg.db.collection("users");
-    let result = collection.insert_one(form.into_inner()).await;
+async fn add_user(cfg: web::Data<AppStates>, json: web::Json<User>) -> HttpResponse {
+    let collection: Collection<User> = cfg.db.collection("users");
+    let result = collection.insert_one(json.into_inner()).await;
     match result {
         Ok(_) => HttpResponse::Ok().body("user added"),
         Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
@@ -209,6 +210,7 @@ async fn main() -> io::Result<()> {
             .service(get_svg)
             .service(index)
             .service(add_user)
+            .service(get_user)
             // with path parameters
             // async response body
             .service(web::resource("/async-body/{name}").route(web::get().to(streaming_response)))
