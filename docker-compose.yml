@@ -1,0 +1,27 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.dev
+    restart: unless-stopped
+    volumes:
+      - app:/usr/src/actxol
+
+  mongo:
+    image: "mongo:5.0"
+    container_name: mongo_local
+    hostname: mongo_local
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_local:/data
+
+volumes:
+  app:
+    driver: local
+  mongo_local:
+    driver: local
