@@ -10,9 +10,9 @@ use actix_web::{
     error,
     get,
     http::{ header::{ self, ContentType }, Method, StatusCode },
-    middleware::{ Logger, Compress },
+    middleware::{ Compress, Logger },
     post,
-    web::{ self, Json },
+    web::{ self },
     App,
     Either,
     HttpRequest,
@@ -181,7 +181,7 @@ async fn main() -> io::Result<()> {
             //     origin.as_bytes().ends_with(b".rust-lang.org")
             // })
             .send_wildcard()
-            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "PATCH"])
             .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
             .allowed_header(header::CONTENT_TYPE)
             .max_age(3600);
