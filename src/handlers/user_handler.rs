@@ -1,5 +1,7 @@
 use actix_web::{ get, post, web, HttpResponse };
 use mongodb::{ bson::doc, Collection };
+use log::error;
+
 use crate::{ configs::db::AppStates, models::user_model::User };
 
 /// Adds a new user to the "users" collection in the database.
@@ -9,7 +11,10 @@ async fn add_user(cfg: web::Data<AppStates>, json: web::Json<User>) -> HttpRespo
     let result = collection.insert_one(json.into_inner()).await;
     match result {
         Ok(_) => HttpResponse::Ok().body("user added"),
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+        Err(err) => {
+            error!("Error: {}", err);
+            HttpResponse::InternalServerError().body(err.to_string())
+        }
     }
 }
 
@@ -23,6 +28,9 @@ async fn get_user(cfg: web::Data<AppStates>, username: web::Path<String>) -> Htt
         Ok(None) => {
             HttpResponse::NotFound().body(format!("No user found with username {username}"))
         }
-        Err(err) => HttpResponse::InternalServerError().body(err.to_string()),
+        Err(err) => {
+            error!("Error: {}", err);
+            HttpResponse::InternalServerError().body(err.to_string())
+        }
     }
 }

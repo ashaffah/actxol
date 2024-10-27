@@ -3,15 +3,15 @@ mod configs;
 mod models;
 mod handlers;
 
-use std::{ convert::Infallible, io };
+use std::{ convert::Infallible, env, io };
 use actix_cors::Cors;
 use actix_files::{ Files, NamedFile };
 use actix_session::{ storage::CookieSessionStore, SessionMiddleware };
 use actix_web::{
-    error,
+    error::{ self, Error, InternalError, JsonPayloadError },
     http::{ header::{ self, ContentType }, Method, StatusCode },
     middleware::{ Compress, Logger },
-    web::{ self, scope },
+    web::{ self, scope, JsonConfig },
     App,
     Either,
     HttpRequest,
@@ -20,8 +20,10 @@ use actix_web::{
     Responder,
     Result,
 };
+use chrono::{ SecondsFormat, Utc };
 use dotenvy::dotenv;
-use models::user_model::User;
+use log::info;
+use models::{ error_model::ApiError, user_model::User };
 use handlers::{
     qr_handler::{ generate_qr, get_svg },
     user_handler::{ add_user, get_user },
@@ -74,6 +76,39 @@ async fn create_username_index(client: &Client) {
         .expect("creating an index should succeed");
 }
 
+// Handle json parser errors.
+fn json_error_handler(err: JsonPayloadError, _req: &HttpRequest) -> Error {
+    let detail = err.to_string();
+    let resp = match &err {
+        JsonPayloadError::ContentType =>
+            HttpResponse::UnsupportedMediaType().json(ApiError {
+                status: 415,
+                time: Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
+                message: "Unsupported media type".to_owned(),
+                debug_message: Some(detail),
+                sub_errors: Vec::new(),
+            }),
+        JsonPayloadError::Deserialize(json_err) if json_err.is_data() => {
+            HttpResponse::UnprocessableEntity().json(ApiError {
+                status: 422,
+                time: Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
+                message: "Unprocessable payload".to_owned(),
+                debug_message: Some(detail),
+                sub_errors: Vec::new(),
+            })
+        }
+        _ =>
+            HttpResponse::BadRequest().json(ApiError {
+                status: 400,
+                time: Utc::now().to_rfc3339_opts(SecondsFormat::Micros, true),
+                message: "Bad request. Missing parameter and / or wrong payload.".to_owned(),
+                debug_message: Some(detail),
+                sub_errors: Vec::new(),
+            }),
+    };
+    InternalError::from_response(err, resp).into()
+}
+
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -81,12 +116,23 @@ async fn main() -> io::Result<()> {
     let key = actix_web::cookie::Key::from(SESSION_SIGNING_KEY);
     // Load .env file
     dotenv().ok();
-    let bind_addr = "0.0.0.0:8080";
     // Initialize MongoDB connection
     let client = init().await;
-    let db = client.database(&std::env::var("DB_NAME").unwrap_or_else(|_| "myApp".into()));
+    let db = client.database(&env::var("DB_NAME").unwrap_or_else(|_| "myApp".into()));
     create_username_index(&client).await;
     // let db_postgres = connect().await;
+
+    // Get Server host and port number from environment file.
+    let server_host = match env::var("SERVER.HOST") {
+        Ok(v) => v.to_string(),
+        Err(_) => "127.0.0.1".to_string(),
+    };
+
+    let server_port: u16 = match env::var("SERVER.PORT") {
+        Ok(v) => v.parse().unwrap_or(8080),
+        Err(_) => 8080,
+    };
+    info!("Starting actix-web server in {}:{}", server_host, server_port);
 
     HttpServer::new(move || {
         // CORS
@@ -109,6 +155,7 @@ async fn main() -> io::Result<()> {
                     mongo_db: db.clone(),
                 })
             )
+            .app_data(JsonConfig::default().error_handler(json_error_handler))
             .wrap(cors)
             // enable automatic response compression - usually register this first
             .wrap(Compress::default())
@@ -170,7 +217,7 @@ async fn main() -> io::Result<()> {
             // default
             .default_service(web::to(default_handler))
     })
-        .bind(bind_addr)?
+        .bind((server_host, server_port))?
         .workers(2)
         .run().await
 }
