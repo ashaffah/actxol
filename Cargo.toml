@@ -5,17 +5,33 @@ authors = ["Ashaffah <ashaffarafi@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-actix-web = "4.9.0"
-serde = { version = "1.0.213", features = ["derive"] }
-serde_json = "1.0.132"
-actix-files = "0.6.6"
-actix-http = "3.9.0"
-actix-session = { version = "0.10.1", features = ["cookie-session"] }
-async-stream = "0.3.6"
-env_logger = "0.11.5"
-log = "0.4"
-qirust = "0.1.9"
-actix-cors = "0.7.0"
-mongodb = "3.1.0"
-postgres = "0.19.9"
-dotenvy = "0.15.7"
+# actix core
+actix-web = "^4.9.0"
+actix-files = "^0.6.6"
+actix-http = "^3.9.0"
+actix-session = { version = "^0.10.1", features = ["cookie-session"] }
+
+# JSON Seralizer
+serde = { version = "^1.0.213", features = ["derive"] }
+serde_json = "^1.0.132"
+
+# logging
+env_logger = "^0.11.5"
+log = "^0.4"
+
+# CORS
+actix-cors = "^0.7.0"
+mongodb = "^3.1.0"
+postgres = "^0.19.9"
+
+# request validation
+validator = { version = "^0.18.1", features = [
+  "derive",
+], default-features = false }
+
+# Utils
+dotenvy = "^0.15.7"
+async-stream = "^0.3.6"
+derive_more = { default-features = false, version = "^1.0.0" }
+chrono = { default-features = false, version = "^0.4.38" }
+qirust = "^0.1.9"
