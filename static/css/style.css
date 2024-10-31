@@ -15,3 +15,18 @@
 .post>img {
   width: 350px;
 }
+
+.container {
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  margin-right: auto;
+  align-items: center;
+}
+
+.qr-container {
+  width: 500px;
+  height: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
