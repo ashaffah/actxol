@@ -1,3 +1,5 @@
+use std::env;
+
 use actix_files::NamedFile;
 use actix_http::StatusCode;
 use actix_session::Session;
@@ -23,11 +25,8 @@ async fn welcome(req: HttpRequest, session: Session) -> Result<HttpResponse> {
 
     // set counter to session
     session.insert("counter", counter)?;
+    let static_path = env::var("PATH_STATIC").expect("PATH_STATIC Not set");
 
     // response
-    Ok(
-        HttpResponse::build(StatusCode::OK)
-            .content_type(ContentType::html())
-            .body(include_str!("../../static/welcome.html"))
-    )
+    Ok(HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).body(static_path))
 }

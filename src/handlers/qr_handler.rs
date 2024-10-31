@@ -13,7 +13,9 @@ struct Info {
 #[get("/qr")]
 async fn generate_qr(info: web::Query<Info>) -> Result<HttpResponse> {
     let svg_string = generate_svg_string(&info.data);
-    Ok(HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).body(svg_string))
+    let response =
+        format!("<body><div style='width: 500; height: 500; margin-left: auto; margin-right: auto;'>{}</div></body>", svg_string);
+    Ok(HttpResponse::build(StatusCode::OK).content_type(ContentType::html()).body(response))
 }
 
 #[post("/svg")]
