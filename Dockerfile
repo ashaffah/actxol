@@ -11,7 +11,7 @@ FROM alpine:3.18 AS deploy
 WORKDIR /app
 # Copy the executable from the "build" stage.
 COPY --from=build /actxol/target/release/actxol ./src/server
-COPY --from=build /actxol/static ./src/static
+COPY --from=build /actxol/static ./static
 # ENTRYPOINT ["tail", "-f", "/dev/null"]
 # What the container should run when it is started.
 CMD ["/app/src/server"]
