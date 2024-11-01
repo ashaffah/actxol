@@ -12,7 +12,7 @@ services:
       - app:/usr/src/actxol
 
   mongo:
-    image: "mongo:5.0"
+    image: "mongo:8.0.3"
     container_name: mongo_local
     hostname: mongo_local
     ports:
