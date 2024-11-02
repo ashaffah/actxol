@@ -1,8 +1,34 @@
-use actix_web::{ get, post, web, HttpResponse };
+use actix_web::{ get, post, put, web, HttpResponse };
 use mongodb::{ bson::doc, Collection };
 use log::error;
+use serde::Deserialize;
+use futures::stream::TryStreamExt;
 
-use crate::{ configs::db::AppStates, models::user_model::User };
+use crate::{ configs::db::AppStates, constants, models::user_model::User };
+
+#[derive(Deserialize)]
+pub enum OrderQuery {
+    NEW,
+    OLD,
+}
+
+#[derive(Deserialize)]
+pub struct ListQuery {
+    search: Option<String>,
+    per_page: Option<i64>,
+    page: Option<i64>,
+    order: Option<OrderQuery>,
+}
+impl Default for ListQuery {
+    fn default() -> Self {
+        ListQuery {
+            page: Some(1),
+            per_page: Some(10),
+            search: Some("".to_string()),
+            order: Some(OrderQuery::NEW),
+        }
+    }
+}
 
 /// Adds a new user to the "users" collection in the database.
 #[post("/add_user")]
@@ -19,7 +45,7 @@ async fn add_user(cfg: web::Data<AppStates>, json: web::Json<User>) -> HttpRespo
 }
 
 /// Gets the user with the supplied username.
-#[get("/get_user/{username}")]
+#[get("/user/{username}")]
 async fn get_user(cfg: web::Data<AppStates>, username: web::Path<String>) -> HttpResponse {
     let username = username.into_inner();
     let collection: Collection<User> = cfg.mongo_db.collection("users");
@@ -33,4 +59,32 @@ async fn get_user(cfg: web::Data<AppStates>, username: web::Path<String>) -> Htt
             HttpResponse::InternalServerError().body(err.to_string())
         }
     }
+}
+
+#[get("/users")]
+async fn get_users(
+    cfg: web::Data<AppStates>,
+    query: Option<web::Query<ListQuery>>
+) -> HttpResponse {
+    let query = query.unwrap();
+    let search = query.search.clone().unwrap_or_else(|| "".to_string());
+    let per_page = query.per_page.unwrap_or(10);
+    let page = query.page.unwrap_or(1);
+
+    let limit = per_page.try_into().unwrap_or(constants::DEFAULT_LIMIT_SIZE);
+    let offset = ((page - 1) * per_page).try_into().unwrap_or(constants::DEFAULT_OFFSET_SIZE);
+    let collection: Collection<User> = cfg.mongo_db.collection("users");
+
+    let mut cursor = collection
+        .find(doc! { "username": {"$regex": search, "$options": "i"} })
+        .limit(limit.try_into().unwrap())
+        .skip(offset.try_into().unwrap()).await
+        .expect("Failed to execute find.");
+
+    let mut users: Vec<User> = Vec::new();
+    while let Some(result) = cursor.try_next().await.expect("Failed to fetch next document.") {
+        users.push(result);
+    }
+
+    HttpResponse::Ok().json(users)
 }

@@ -2,6 +2,7 @@
 mod configs;
 mod models;
 mod handlers;
+mod constants;
 
 use std::{ convert::Infallible, env, io };
 use actix_cors::Cors;
@@ -26,7 +27,7 @@ use log::info;
 use models::{ error_model::ApiError, user_model::User };
 use handlers::{
     qr_handler::{ generate_qr, get_svg },
-    user_handler::{ add_user, get_user },
+    user_handler::{ add_user, get_user, get_users },
     welcome_handler::{ favicon, welcome },
 };
 use mongodb::{ bson::doc, options::IndexOptions, Client, IndexModel };
@@ -170,6 +171,7 @@ async fn main() -> io::Result<()> {
                 scope("/api")
                     .service(get_user)
                     .service(get_svg)
+                    .service(get_users)
                     .service(add_user)
                     .service(generate_qr)
             )
