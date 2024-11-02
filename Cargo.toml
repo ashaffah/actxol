@@ -37,3 +37,4 @@ async-stream = "^0.3.6"
 derive_more = { default-features = false, version = "^1.0.0" }
 chrono = { default-features = false, version = "^0.4.38" }
 qirust = "^0.1.9"
+futures = { version = "^0.3", default-features = false }
