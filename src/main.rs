@@ -27,7 +27,7 @@ use log::info;
 use models::{ error_model::ApiError, user_model::User };
 use handlers::{
     qr_handler::{ generate_qr, get_svg },
-    user_handler::{ add_user, get_user, get_users },
+    user_handler::{ add_user, get_user, get_users, update_user },
     welcome_handler::{ favicon, welcome },
 };
 use mongodb::{ bson::doc, options::IndexOptions, Client, IndexModel };
@@ -174,6 +174,7 @@ async fn main() -> io::Result<()> {
                     .service(get_users)
                     .service(add_user)
                     .service(generate_qr)
+                    .service(update_user)
             )
             // enable logger - always register Actix Web Logger middleware last
             .wrap(Logger::default())

@@ -1,10 +1,14 @@
-use actix_web::{ get, post, put, web, HttpResponse };
+use actix_web::{ get, post, put, web, HttpResponse, Responder };
 use mongodb::{ bson::doc, Collection };
 use log::error;
-use serde::Deserialize;
+use serde::{ Deserialize, Serialize };
 use futures::stream::TryStreamExt;
 
-use crate::{ configs::db::AppStates, constants, models::user_model::User };
+use crate::{
+    configs::db::AppStates,
+    constants,
+    models::{ error_model::ApiErrorType, user_model::User },
+};
 
 #[derive(Deserialize)]
 pub enum OrderQuery {
@@ -28,6 +32,14 @@ impl Default for ListQuery {
             order: Some(OrderQuery::NEW),
         }
     }
+}
+
+#[derive(Serialize)]
+pub struct ResultData {
+    data: Vec<User>,
+    total: u64,
+    page: i64,
+    per_page: i64,
 }
 
 /// Adds a new user to the "users" collection in the database.
@@ -65,7 +77,7 @@ async fn get_user(cfg: web::Data<AppStates>, username: web::Path<String>) -> Htt
 async fn get_users(
     cfg: web::Data<AppStates>,
     query: Option<web::Query<ListQuery>>
-) -> HttpResponse {
+) -> impl Responder {
     let query = query.unwrap();
     let search = query.search.clone().unwrap_or_else(|| "".to_string());
     let per_page = query.per_page.unwrap_or(10);
@@ -81,10 +93,50 @@ async fn get_users(
         .skip(offset.try_into().unwrap()).await
         .expect("Failed to execute find.");
 
+    let count = collection.count_documents(doc! {}).await.unwrap();
+
     let mut users: Vec<User> = Vec::new();
     while let Some(result) = cursor.try_next().await.expect("Failed to fetch next document.") {
         users.push(result);
     }
 
-    HttpResponse::Ok().json(users)
+    let data = ResultData {
+        data: users,
+        total: count,
+        page: page,
+        per_page: per_page,
+    };
+
+    HttpResponse::Ok().json(data)
+}
+
+#[put("/user/{username}")]
+async fn update_user(
+    cfg: web::Data<AppStates>,
+    username: web::Path<String>,
+    json: web::Json<User>
+) -> HttpResponse {
+    let username = username.into_inner();
+    if username.is_empty() {
+        return HttpResponse::BadRequest().body("Invalid username");
+    }
+    let collection: Collection<User> = cfg.mongo_db.collection("users");
+    let result = collection.find_one_and_update(
+        doc! { "username": &username },
+        doc! {"$set":{
+                        "first_name": json.first_name.to_owned(),
+                        "last_name": json.last_name.to_owned(),
+                        "username": json.username.to_owned(),
+                        "email": json.email.to_owned(),
+                     }}
+    ).await;
+
+    match result {
+        Ok(Some(_)) => HttpResponse::Ok().body(format!("success update user")),
+        Ok(None) => HttpResponse::NotFound().body(format!("User {username} not found!")),
+        Err(err) => {
+            error!("Error: {}", err);
+            HttpResponse::InternalServerError().body(err.to_string())
+        }
+    }
 }
