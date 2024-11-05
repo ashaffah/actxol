@@ -1,14 +1,10 @@
-use actix_web::{ get, post, put, web, HttpResponse, Responder };
+use actix_web::{ delete, get, post, put, web, HttpResponse, Responder };
 use mongodb::{ bson::doc, Collection };
 use log::error;
 use serde::{ Deserialize, Serialize };
 use futures::stream::TryStreamExt;
 
-use crate::{
-    configs::db::AppStates,
-    constants,
-    models::{ error_model::ApiErrorType, user_model::User },
-};
+use crate::{ configs::db::AppStates, constants, models::user_model::User };
 
 #[derive(Deserialize)]
 pub enum OrderQuery {
@@ -134,6 +130,28 @@ async fn update_user(
     match result {
         Ok(Some(_)) => HttpResponse::Ok().body(format!("success update user")),
         Ok(None) => HttpResponse::NotFound().body(format!("User {username} not found!")),
+        Err(err) => {
+            error!("Error: {}", err);
+            HttpResponse::InternalServerError().body(err.to_string())
+        }
+    }
+}
+
+#[delete("/user/{username}")]
+async fn delete_user(cfg: web::Data<AppStates>, username: web::Path<String>) -> HttpResponse {
+    let username = username.into_inner();
+    if username.is_empty() {
+        return HttpResponse::BadRequest().body("Invalid username");
+    }
+    let collection: Collection<User> = cfg.mongo_db.collection("users");
+    let result = collection.delete_one(doc! { "username": &username }).await;
+    match result {
+        Ok(res) => {
+            if res.deleted_count == 1 {
+                HttpResponse::Ok().body(format!("User {username} has been deleted!"));
+            }
+            HttpResponse::NotFound().body(format!("User {username} not found!"))
+        }
         Err(err) => {
             error!("Error: {}", err);
             HttpResponse::InternalServerError().body(err.to_string())
